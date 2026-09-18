@@ -204,10 +204,10 @@ export default function ProgressPage() {
                   </span>
                 </div>
                 <h2 className="font-headline text-2xl font-bold text-on-surface mt-1">
-                  {scholar?.name ?? "Alex Rivera"}
+                  {scholar?.name ?? "Scholar"}
                 </h2>
                 <p className="text-xs font-label text-on-surface-variant">
-                  {scholar?.studentClass ?? "Class 11 (Science)"} · {scholar?.school ?? "Delhi Public School"}
+                  {scholar?.studentClass ?? "Class 12 (Science)"} · {scholar?.school ?? "Academic Scholar"}
                 </p>
               </div>
             </div>

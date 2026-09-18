@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/base-ui/avatar
 import {
   BookOpen, GraduationCap, School, ChevronDown,
   Swords, Shield, Zap, Star, ArrowRight, Sparkles,
-  UserCheck, RotateCcw
+  UserCheck, UserPlus, LogIn, CheckCircle2
 } from "lucide-react";
 import {
   SCHOLAR_KEY,
@@ -20,7 +20,7 @@ import { playSound } from "@/lib/audioEffects";
 // ─── constants ──────────────────────────────────────────────────────────────
 
 const BOY_PROFILE = {
-  name: "Alex Rivera",
+  name: "Ankit Pradhan",
   avatar: "https://assets.watermelon.sh/wm_alex.png",
   tagline: "The Warrior Scholar",
   color: "from-blue-500/20 to-indigo-500/20",
@@ -58,16 +58,18 @@ function getInitials(name: string) {
     .split(/\s+/)
     .map((w) => w[0])
     .join("")
-    .toUpperCase();
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 function XPBar({ value }: { value: number }) {
+  const clampedValue = Math.min(100, Math.max(0, value));
   return (
     <div className="w-full h-2 rounded-full bg-surface-container overflow-hidden">
       <motion.div
         initial={{ width: 0 }}
-        animate={{ width: `${Math.min(100, Math.max(5, value))}%` }}
-        transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
+        animate={{ width: `${clampedValue}%` }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         className="h-full rounded-full bg-linear-to-r from-primary to-secondary"
       />
     </div>
@@ -91,11 +93,11 @@ function GenderCard({ type, selected, onSelect }: GenderCardProps) {
         playSound("click");
         onSelect();
       }}
-      whileHover={{ scale: 1.03, y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer w-full
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      className={`relative flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer w-full
         ${selected
-          ? `border-primary bg-linear-to-b ${profile.color} shadow-lg ${profile.glow}`
+          ? `border-primary bg-linear-to-b ${profile.color} shadow-md ${profile.glow}`
           : "border-outline-variant bg-surface-container-low hover:border-outline hover:bg-surface-container"
         }`}
     >
@@ -112,18 +114,18 @@ function GenderCard({ type, selected, onSelect }: GenderCardProps) {
         )}
       </AnimatePresence>
 
-      <div className={`relative ${selected ? "scale-110" : ""} transition-transform duration-200`}>
+      <div className={`relative ${selected ? "scale-105" : ""} transition-transform duration-200`}>
         <div className={`absolute inset-0 rounded-full blur-xl opacity-40 ${type === "boy" ? "bg-blue-400" : "bg-purple-400"} ${selected ? "opacity-60" : "opacity-0"} transition-opacity`} />
-        <Avatar className={`w-20 h-20 ${selected ? `ring-4 ${profile.ring} ring-offset-2 ring-offset-background` : ""} transition-all duration-200 shadow-md`}>
+        <Avatar className={`w-16 h-16 ${selected ? `ring-4 ${profile.ring} ring-offset-2 ring-offset-background` : ""} transition-all duration-200 shadow-md`}>
           <AvatarImage src={profile.avatar} alt={profile.name} />
-          <AvatarFallback className="text-lg font-bold">{getInitials(profile.name)}</AvatarFallback>
+          <AvatarFallback className="text-base font-bold">{getInitials(profile.name)}</AvatarFallback>
         </Avatar>
       </div>
 
       <div className="text-center">
-        <p className="font-headline text-base font-bold text-on-surface">{profile.name}</p>
-        <div className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-label font-semibold ${profile.badge}`}>
-          {profile.icon} {profile.tagline}
+        <p className="font-headline text-sm font-bold text-on-surface">{type === "boy" ? "Warrior Scholar" : "Arcane Scholar"}</p>
+        <div className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-label font-semibold ${profile.badge}`}>
+          {profile.icon} {type === "boy" ? "Champion" : "Mystic"}
         </div>
       </div>
     </motion.button>
@@ -186,13 +188,19 @@ function StyledInput({
 
 export { SCHOLAR_KEY };
 
-type Step = "identity" | "details" | "ready";
+type AuthMode = "create" | "signin";
+type CreateStep = "identity" | "details" | "ready";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [existingScholar, setExistingScholar] = useState<ScholarProfile | null>(null);
-  const [showWizard, setShowWizard] = useState(true);
-  const [step, setStep] = useState<Step>("identity");
+  const [authMode, setAuthMode] = useState<AuthMode>("create");
+  const [savedScholar, setSavedScholar] = useState<ScholarProfile | null>(null);
+
+  // Sign in state
+  const [signInName, setSignInName] = useState("");
+
+  // Create account state
+  const [createStep, setCreateStep] = useState<CreateStep>("identity");
   const [gender, setGender] = useState<"boy" | "girl" | null>(null);
   const [name, setName] = useState("");
   const [studentClass, setStudentClass] = useState("");
@@ -202,17 +210,15 @@ export default function LoginPage() {
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const saved = getStoredScholar();
-    if (saved && saved.name) {
-      setExistingScholar(saved);
-      setShowWizard(false);
-    } else {
-      setShowWizard(true);
+    const stored = getStoredScholar();
+    if (stored && stored.name) {
+      setSavedScholar(stored);
+      setSignInName(stored.name);
     }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const profile = gender === "boy" ? BOY_PROFILE : gender === "girl" ? GIRL_PROFILE : null;
+  const selectedProfile = gender === "boy" ? BOY_PROFILE : gender === "girl" ? GIRL_PROFILE : null;
 
   function canProceedStep1() {
     return gender !== null && name.trim().length > 0;
@@ -222,28 +228,19 @@ export default function LoginPage() {
     return studentClass !== "" && school.trim().length > 0;
   }
 
-  function handleResumeSession() {
-    if (!existingScholar) return;
+  // 1-Click Demo Profiles (Ankit Pradhan & Maya Chen)
+  function handleQuickDemo(type: "ankit" | "maya") {
     playSound("success");
     setLoading(true);
-    activateScholarSession(existingScholar);
-    setTimeout(() => {
-      router.push("/");
-    }, 400);
-  }
-
-  function handleQuickDemo(type: "alex" | "maya") {
-    playSound("success");
-    setLoading(true);
-    const isBoy = type === "alex";
+    const isAnkit = type === "ankit";
     const demoProfile: ScholarProfile = {
-      name: isBoy ? "Alex Rivera" : "Maya Chen",
-      gender: isBoy ? "boy" : "girl",
-      studentClass: isBoy ? "Class 10" : "Class 12 (Science)",
-      board: isBoy ? "CBSE" : "ICSE / ISC",
-      school: isBoy ? "St. Xavier's Academy" : "Modern Science Institute",
-      avatar: isBoy ? BOY_PROFILE.avatar : GIRL_PROFILE.avatar,
-      tagline: isBoy ? BOY_PROFILE.tagline : GIRL_PROFILE.tagline,
+      name: isAnkit ? "Ankit Pradhan" : "Maya Chen",
+      gender: isAnkit ? "boy" : "girl",
+      studentClass: isAnkit ? "Class 12 (Science)" : "Class 12 (Science)",
+      board: isAnkit ? "CBSE" : "ICSE / ISC",
+      school: isAnkit ? "St. Xavier's Academy" : "Modern Science Institute",
+      avatar: isAnkit ? BOY_PROFILE.avatar : GIRL_PROFILE.avatar,
+      tagline: isAnkit ? BOY_PROFILE.tagline : GIRL_PROFILE.tagline,
       xp: 45,
       quizzesCompleted: 3,
       focusSessions: 2,
@@ -252,529 +249,458 @@ export default function LoginPage() {
     activateScholarSession(demoProfile);
     setTimeout(() => {
       router.push("/");
-    }, 500);
+    }, 450);
   }
 
-  async function handleEnter() {
+  // Returning user Sign In
+  function handleSignInSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (!signInName.trim()) return;
+
+    playSound("success");
+    setLoading(true);
+
+    if (savedScholar && savedScholar.name.toLowerCase() === signInName.trim().toLowerCase()) {
+      activateScholarSession(savedScholar);
+    } else {
+      const returningProfile: ScholarProfile = {
+        name: signInName.trim(),
+        avatar: BOY_PROFILE.avatar,
+        tagline: "The Dedicated Scholar",
+        gender: "boy",
+        studentClass: "Class 12 (Science)",
+        board: "CBSE",
+        school: "Scholar Academy",
+        xp: 20,
+        quizzesCompleted: 1,
+        focusSessions: 1,
+        createdAt: new Date().toISOString(),
+      };
+      activateScholarSession(returningProfile);
+    }
+
+    setTimeout(() => {
+      router.push("/");
+    }, 450);
+  }
+
+  // Create account final enter
+  async function handleCreateAccount() {
     playSound("levelup");
     setLoading(true);
     if (typeof window !== "undefined") {
       localStorage.removeItem("studyflow_persisted_state");
     }
 
-    const scholar: ScholarProfile = {
-      name: name.trim() || profile?.name || "Scholar",
+    const newScholar: ScholarProfile = {
+      name: name.trim() || selectedProfile?.name || "Scholar",
       gender,
       studentClass,
       board,
       school,
-      avatar: profile?.avatar ?? "",
-      tagline: profile?.tagline ?? "",
-      xp: 15,
+      avatar: selectedProfile?.avatar ?? BOY_PROFILE.avatar,
+      tagline: selectedProfile?.tagline ?? "Scholar Champion",
+      xp: 15, // Starter bonus
       quizzesCompleted: 0,
       focusSessions: 0,
       createdAt: new Date().toISOString(),
     };
 
-    activateScholarSession(scholar);
+    activateScholarSession(newScholar);
 
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 500));
     router.push("/");
   }
 
-  const STEP_LABELS: Record<Step, string> = {
-    identity: "Choose your Scholar",
-    details: "Your Study Arena",
-    ready: "Enter the Dojo",
-  };
-
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-      {/* Background decoration */}
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-10 relative selection:bg-primary selection:text-on-primary">
+      {/* Ambient background decoration */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-secondary/10 blur-3xl" />
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-secondary/10 blur-[120px]" />
       </div>
 
-      <div className="relative w-full max-w-lg">
-        {/* Logo / Brand Header */}
+      <div className="relative w-full max-w-md">
+        {/* Brand Header */}
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
-          <div className="inline-flex items-center gap-2 mb-3">
-            <span className="text-primary text-3xl">✦</span>
-            <span className="font-headline text-3xl font-bold text-on-surface">StudyFlow AI</span>
+          <div className="inline-flex items-center gap-2 mb-2">
+            <span className="text-primary text-3xl animate-pulse">✦</span>
+            <span className="font-headline text-3xl font-bold text-on-surface tracking-tight">StudyFlow AI</span>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-label font-bold tracking-wide shadow-xs">
-            <Zap size={13} className="text-primary" /> Revision Dojo &amp; AI Scholar Portal
+          <div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-label font-bold tracking-wide shadow-xs">
+              <Zap size={13} className="text-primary" /> Revision Dojo &amp; AI Scholar Portal
+            </span>
           </div>
         </motion.div>
 
-        {/* MODE 1: Welcome Back / Resume Session for existing users */}
-        {existingScholar && !showWizard ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-3xl border border-outline-variant bg-surface shadow-xl shadow-black/5 overflow-hidden"
-          >
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4 border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
-              <div>
-                <span className="text-xs font-label font-bold text-primary uppercase tracking-widest">
-                  Authentication Required
-                </span>
-                <h1 className="font-headline text-xl font-bold text-on-surface mt-0.5">
-                  Welcome Back, Scholar!
-                </h1>
-              </div>
-              <div className="w-9 h-9 rounded-xl bg-primary-container text-primary flex items-center justify-center font-bold">
-                <UserCheck size={18} />
-              </div>
-            </div>
-
-            {/* Scholar Card View */}
-            <div className="p-6 space-y-6">
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-surface-container-low border border-outline-variant">
-                <div className="relative">
-                  <Avatar className="w-16 h-16 ring-4 ring-primary/40 ring-offset-2 ring-offset-background shadow-md">
-                    <AvatarImage src={existingScholar.avatar} alt={existingScholar.name} />
-                    <AvatarFallback className="text-lg font-bold">
-                      {getInitials(existingScholar.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-primary text-on-primary text-[10px] font-bold shadow">
-                    Lv. {Math.max(1, Math.floor((existingScholar.xp || 0) / 100) + 1)}
-                  </div>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <h2 className="font-headline text-lg font-bold text-on-surface truncate">
-                    {existingScholar.name}
-                  </h2>
-                  <p className="text-xs font-label text-on-surface-variant truncate">
-                    {existingScholar.tagline || "Scholar Champion"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {existingScholar.studentClass && (
-                      <span className="px-2 py-0.5 rounded-md bg-surface-container text-[11px] font-label font-medium text-on-surface">
-                        {existingScholar.studentClass}
-                      </span>
-                    )}
-                    {existingScholar.board && (
-                      <span className="px-2 py-0.5 rounded-md bg-secondary-container text-[11px] font-label font-medium text-on-secondary-container">
-                        {existingScholar.board}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Progress Recap */}
-              <div className="space-y-1.5 bg-surface-container-lowest p-3.5 rounded-xl border border-outline-variant">
-                <div className="flex justify-between text-xs font-label text-on-surface-variant font-medium">
-                  <span className="flex items-center gap-1">
-                    <Shield size={12} className="text-primary" /> Scholar XP
-                  </span>
-                  <span className="font-bold text-on-surface">{existingScholar.xp || 0} XP</span>
-                </div>
-                <XPBar value={((existingScholar.xp || 0) % 100) || 15} />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  id="resume-session-btn"
-                  onClick={handleResumeSession}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-on-primary font-label font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-75"
-                >
-                  {loading ? (
-                    <span>Opening Study Dojo…</span>
-                  ) : (
-                    <>
-                      <Zap size={16} /> Resume Study Session
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  id="switch-scholar-btn"
-                  onClick={() => {
-                    playSound("click");
-                    setShowWizard(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant font-label font-semibold text-xs hover:bg-surface-container transition-colors cursor-pointer"
-                >
-                  <RotateCcw size={13} /> Switch Scholar / Create New Profile
-                </button>
-              </div>
-
-              {/* Quick 1-Click Demo Profiles */}
-              <div className="pt-2 border-t border-outline-variant">
-                <p className="text-[11px] font-label font-semibold text-on-surface-variant uppercase tracking-wider mb-2.5 text-center">
-                  — Or 1-Click Instant Demo Evaluation —
-                </p>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    id="demo-alex-btn"
-                    onClick={() => handleQuickDemo("alex")}
-                    className="p-3 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-xs font-label font-semibold text-on-surface flex flex-col items-center gap-1 transition-all text-center cursor-pointer"
-                  >
-                    <span className="text-primary font-bold">⚡ Alex Rivera</span>
-                    <span className="text-[10px] text-on-surface-variant">Class 10 · CBSE</span>
-                  </button>
-                  <button
-                    type="button"
-                    id="demo-maya-btn"
-                    onClick={() => handleQuickDemo("maya")}
-                    className="p-3 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-xs font-label font-semibold text-on-surface flex flex-col items-center gap-1 transition-all text-center cursor-pointer"
-                  >
-                    <span className="text-secondary font-bold">⚡ Maya Chen</span>
-                    <span className="text-[10px] text-on-surface-variant">Class 12 · ICSE</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ) : (
-          /* MODE 2: Multi-step Scholar Registration / Setup */
-          <div>
-            {/* Step progress */}
-            <div className="flex items-center gap-2 mb-6">
-              {(["identity", "details", "ready"] as Step[]).map((s, i) => (
-                <div key={s} className="flex items-center flex-1">
-                  <div
-                    className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                      ["identity", "details", "ready"].indexOf(step) >= i
-                        ? "bg-primary"
-                        : "bg-outline-variant"
-                    }`}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="rounded-3xl border border-outline-variant bg-surface shadow-xl shadow-black/5 overflow-hidden"
+        {/* Main Authentication Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-3xl border border-outline-variant bg-surface/95 backdrop-blur-xl shadow-2xl shadow-black/5 overflow-hidden"
+        >
+          {/* Top Auth Mode Tabs */}
+          <div className="grid grid-cols-2 p-1.5 bg-surface-container-low border-b border-outline-variant">
+            <button
+              type="button"
+              id="tab-create-account"
+              onClick={() => {
+                playSound("click");
+                setAuthMode("create");
+              }}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-label font-bold transition-all cursor-pointer ${
+                authMode === "create"
+                  ? "bg-surface text-primary shadow-sm border border-outline-variant/60"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
             >
-              {/* Card header */}
-              <div className="px-6 pt-6 pb-4 border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+              <UserPlus size={15} /> Create Account
+            </button>
+            <button
+              type="button"
+              id="tab-sign-in"
+              onClick={() => {
+                playSound("click");
+                setAuthMode("signin");
+              }}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-label font-bold transition-all cursor-pointer ${
+                authMode === "signin"
+                  ? "bg-surface text-primary shadow-sm border border-outline-variant/60"
+                  : "text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <LogIn size={15} /> Sign In
+            </button>
+          </div>
+
+          <div className="p-6">
+            {/* ─────────────────────────────────────────────────────────────
+                MODE A: SIGN IN (For returning users)
+               ───────────────────────────────────────────────────────────── */}
+            {authMode === "signin" && (
+              <motion.div
+                key="signin-panel"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-5"
+              >
                 <div>
-                  <p className="text-xs font-label font-semibold text-on-surface-variant uppercase tracking-widest mb-0.5">
-                    Step {step === "identity" ? 1 : step === "details" ? 2 : 3} of 3
+                  <h2 className="font-headline text-lg font-bold text-on-surface">Welcome Back, Scholar</h2>
+                  <p className="text-xs font-label text-on-surface-variant mt-0.5">
+                    Sign in to resume your active study sessions, quizzes, and XP.
                   </p>
-                  <h1 className="font-headline text-xl font-bold text-on-surface">
-                    {STEP_LABELS[step]}
-                  </h1>
                 </div>
-                {existingScholar && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playSound("click");
-                      setShowWizard(false);
-                    }}
-                    className="text-xs font-label text-primary hover:underline font-semibold"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
 
-              <div className="px-6 py-6 space-y-5">
-                {/* ── STEP 1: Identity ─────────────────────── */}
-                <AnimatePresence mode="wait">
-                  {step === "identity" && (
-                    <motion.div
-                      key="identity"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-5"
+                {/* If there is a remembered scholar on this device, show quick resume card */}
+                {savedScholar && (
+                  <div className="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="w-11 h-11 ring-2 ring-primary/30 ring-offset-1 ring-offset-background shrink-0">
+                        <AvatarImage src={savedScholar.avatar} alt={savedScholar.name} />
+                        <AvatarFallback className="text-xs font-bold bg-primary-container text-on-primary-container">
+                          {getInitials(savedScholar.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="text-xs font-label font-bold text-on-surface truncate">{savedScholar.name}</p>
+                        <p className="text-[11px] font-label text-on-surface-variant truncate">
+                          {savedScholar.studentClass || "Scholar"} · {savedScholar.xp || 0} XP
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSignInName(savedScholar.name);
+                        handleSignInSubmit();
+                      }}
+                      disabled={loading}
+                      className="px-3 py-1.5 rounded-xl bg-primary text-on-primary text-xs font-label font-bold hover:opacity-90 active:scale-95 transition-all shrink-0 cursor-pointer"
                     >
-                      <div>
-                        <p className="text-xs font-label font-semibold text-on-surface-variant uppercase tracking-wider mb-3">
-                          Select your Avatar
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <GenderCard type="boy" selected={gender === "boy"} onSelect={() => setGender("boy")} />
-                          <GenderCard type="girl" selected={gender === "girl"} onSelect={() => setGender("girl")} />
-                        </div>
-                      </div>
+                      Resume
+                    </button>
+                  </div>
+                )}
 
-                      <StyledInput
-                        id="student-name"
-                        label="Your Name"
-                        icon={<Sparkles size={12} />}
-                        value={name}
-                        onChange={setName}
-                        placeholder={gender === "girl" ? "e.g. Maya, Priya, Ananya…" : "e.g. Alex, Arjun, Rahul…"}
+                <form onSubmit={handleSignInSubmit} className="space-y-4">
+                  <StyledInput
+                    id="signin-username"
+                    label="Scholar Username / Full Name"
+                    icon={<Sparkles size={12} />}
+                    value={signInName}
+                    onChange={setSignInName}
+                    placeholder="Enter your registered name..."
+                  />
+
+                  <button
+                    type="submit"
+                    id="signin-submit-btn"
+                    disabled={!signInName.trim() || loading}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-bold text-sm shadow-md hover:opacity-95 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <span>Opening Study Dojo…</span>
+                    ) : (
+                      <>
+                        <Zap size={16} /> Sign In &amp; Open Dojo
+                      </>
+                    )}
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* ─────────────────────────────────────────────────────────────
+                MODE B: CREATE ACCOUNT (Step-by-Step for new students)
+               ───────────────────────────────────────────────────────────── */}
+            {authMode === "create" && (
+              <motion.div
+                key="create-panel"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="space-y-5"
+              >
+                {/* Step indicator */}
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <span className="text-[11px] font-label font-bold text-primary uppercase tracking-widest">
+                      Step {createStep === "identity" ? "1" : createStep === "details" ? "2" : "3"} of 3
+                    </span>
+                    <h2 className="font-headline text-lg font-bold text-on-surface">
+                      {createStep === "identity" && "Choose Your Scholar Avatar"}
+                      {createStep === "details" && "Your Academic Arena"}
+                      {createStep === "ready" && "Ready to Enter Dojo"}
+                    </h2>
+                  </div>
+                  <div className="flex gap-1">
+                    {(["identity", "details", "ready"] as CreateStep[]).map((s, idx) => (
+                      <div
+                        key={s}
+                        className={`w-5 h-1.5 rounded-full transition-all duration-300 ${
+                          ["identity", "details", "ready"].indexOf(createStep) >= idx
+                            ? "bg-primary"
+                            : "bg-outline-variant"
+                        }`}
                       />
+                    ))}
+                  </div>
+                </div>
 
-                      {/* Quick 1-Click Start Pills */}
-                      <div className="pt-1">
-                        <p className="text-[11px] font-label font-semibold text-on-surface-variant uppercase tracking-wider mb-2 text-center">
-                          — or Instant 1-Click Demo —
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            id="quick-demo-alex"
-                            onClick={() => handleQuickDemo("alex")}
-                            className="p-2.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-xs font-label font-semibold text-on-surface flex flex-col items-center gap-1 transition-all text-center cursor-pointer"
-                          >
-                            <span className="text-primary font-bold">⚡ Start as Alex</span>
-                            <span className="text-[10px] text-on-surface-variant">Class 10 · CBSE</span>
-                          </button>
-                          <button
-                            type="button"
-                            id="quick-demo-maya"
-                            onClick={() => handleQuickDemo("maya")}
-                            className="p-2.5 rounded-xl border border-outline-variant bg-surface-container-low hover:bg-surface-container text-xs font-label font-semibold text-on-surface flex flex-col items-center gap-1 transition-all text-center cursor-pointer"
-                          >
-                            <span className="text-secondary font-bold">⚡ Start as Maya</span>
-                            <span className="text-[10px] text-on-surface-variant">Class 12 · ICSE</span>
-                          </button>
-                        </div>
-                      </div>
+                {/* STEP 1: Avatar & Name */}
+                {createStep === "identity" && (
+                  <motion.div
+                    key="step-identity"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <GenderCard type="boy" selected={gender === "boy"} onSelect={() => setGender("boy")} />
+                      <GenderCard type="girl" selected={gender === "girl"} onSelect={() => setGender("girl")} />
+                    </div>
 
+                    <StyledInput
+                      id="student-name-input"
+                      label="Your Name / Nickname"
+                      icon={<Sparkles size={12} />}
+                      value={name}
+                      onChange={setName}
+                      placeholder={gender === "girl" ? "e.g. Maya, Sarah, Ananya…" : "e.g. Ankit, Alex, Arjun…"}
+                    />
+
+                    <button
+                      type="button"
+                      id="step1-continue-btn"
+                      disabled={!canProceedStep1()}
+                      onClick={() => {
+                        playSound("click");
+                        setCreateStep("details");
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-bold text-sm hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer shadow-md"
+                    >
+                      Continue <ArrowRight size={15} />
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* STEP 2: Academic Details */}
+                {createStep === "details" && (
+                  <motion.div
+                    key="step-details"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4"
+                  >
+                    <StyledSelect
+                      id="student-class"
+                      label="Class / Grade / Year"
+                      icon={<GraduationCap size={12} />}
+                      options={CLASSES}
+                      value={studentClass}
+                      onChange={setStudentClass}
+                      placeholder="Select your class / standard…"
+                    />
+
+                    <StyledSelect
+                      id="student-board"
+                      label="Curriculum / Board"
+                      icon={<BookOpen size={12} />}
+                      options={BOARDS}
+                      value={board}
+                      onChange={setBoard}
+                      placeholder="Select your exam board…"
+                    />
+
+                    <StyledInput
+                      id="student-school"
+                      label="School / Institution Name"
+                      icon={<School size={12} />}
+                      value={school}
+                      onChange={setSchool}
+                      placeholder="e.g. St. Xavier's, DPS, City High…"
+                    />
+
+                    <div className="flex gap-2.5 pt-1">
                       <button
                         type="button"
-                        id="step1-next-btn"
-                        disabled={!canProceedStep1()}
                         onClick={() => {
                           playSound("click");
-                          setStep("details");
+                          setCreateStep("identity");
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        className="flex-1 py-3 rounded-xl border border-outline-variant text-on-surface-variant font-label font-bold text-xs hover:bg-surface-container transition-colors cursor-pointer"
                       >
-                        Continue <ArrowRight size={15} />
+                        ← Back
                       </button>
-                    </motion.div>
-                  )}
+                      <button
+                        type="button"
+                        id="step2-continue-btn"
+                        disabled={!canProceedStep2()}
+                        onClick={() => {
+                          playSound("click");
+                          setCreateStep("ready");
+                        }}
+                        className="flex-2 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-bold text-sm hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer shadow-md"
+                      >
+                        Review Profile <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
 
-                  {/* ── STEP 2: Study Details ─────────────────── */}
-                  {step === "details" && (
-                    <motion.div
-                      key="details"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-4"
-                    >
-                      {profile && (
-                        <div className={`flex items-center gap-3 p-3 rounded-xl bg-linear-to-r ${profile.color} border border-outline-variant`}>
-                          <Avatar className={`w-10 h-10 ring-2 ${profile.ring} ring-offset-1 ring-offset-background`}>
-                            <AvatarImage src={profile.avatar} alt={name || profile.name} />
-                            <AvatarFallback className="text-xs font-bold">{getInitials(name || profile.name)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-label font-bold text-on-surface text-sm">{name || profile.name}</p>
-                            <p className="text-xs font-label text-on-surface-variant">{profile.tagline}</p>
-                          </div>
+                {/* STEP 3: Ready to Enter */}
+                {createStep === "ready" && (
+                  <motion.div
+                    key="step-ready"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="space-y-4 text-center"
+                  >
+                    <div className="flex flex-col items-center">
+                      <div className="relative">
+                        <Avatar className="w-20 h-20 ring-4 ring-primary/40 ring-offset-2 ring-offset-background shadow-lg">
+                          <AvatarImage src={selectedProfile?.avatar} alt={name} />
+                          <AvatarFallback className="text-lg font-bold">{getInitials(name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-primary text-on-primary text-[10px] font-bold shadow">
+                          Lv. 1
                         </div>
-                      )}
-
-                      <StyledSelect
-                        id="student-class"
-                        label="Class / Year"
-                        icon={<GraduationCap size={12} />}
-                        options={CLASSES}
-                        value={studentClass}
-                        onChange={setStudentClass}
-                        placeholder="Select your class…"
-                      />
-
-                      <StyledSelect
-                        id="student-board"
-                        label="Board / Curriculum"
-                        icon={<BookOpen size={12} />}
-                        options={BOARDS}
-                        value={board}
-                        onChange={setBoard}
-                        placeholder="Select your board…"
-                      />
-
-                      <StyledInput
-                        id="student-school"
-                        label="School / College Name"
-                        icon={<School size={12} />}
-                        value={school}
-                        onChange={setSchool}
-                        placeholder="e.g. Delhi Public School, Oxford High…"
-                      />
-
-                      <div className="flex gap-3 pt-1">
-                        <button
-                          type="button"
-                          id="step2-back-btn"
-                          onClick={() => {
-                            playSound("click");
-                            setStep("identity");
-                          }}
-                          className="flex-1 py-3 rounded-xl border border-outline-variant text-on-surface-variant font-label font-semibold text-sm hover:bg-surface-container transition-colors cursor-pointer"
-                        >
-                          ← Back
-                        </button>
-                        <button
-                          type="button"
-                          id="step2-next-btn"
-                          disabled={!canProceedStep2()}
-                          onClick={() => {
-                            playSound("click");
-                            setStep("ready");
-                          }}
-                          className="flex-2 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                        >
-                          Continue <ArrowRight size={15} />
-                        </button>
                       </div>
-                    </motion.div>
-                  )}
+                      <h3 className="font-headline text-lg font-bold text-on-surface mt-2">{name}</h3>
+                      <p className="text-xs font-label text-on-surface-variant">
+                        {studentClass} · {board || "General"} · {school}
+                      </p>
+                    </div>
 
-                  {/* ── STEP 3: Ready ─────────────────────────── */}
-                  {step === "ready" && (
-                    <motion.div
-                      key="ready"
-                      initial={{ opacity: 0, scale: 0.97 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-5 text-center"
-                    >
-                      {profile && (
-                        <div className="flex flex-col items-center gap-3">
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ type: "spring", bounce: 0.4, delay: 0.1 }}
-                            className="relative"
-                          >
-                            <div className={`absolute inset-0 rounded-full blur-2xl opacity-50 scale-110 ${gender === "boy" ? "bg-blue-400" : "bg-purple-400"}`} />
-                            <Avatar className={`relative w-24 h-24 ring-4 ${profile.ring} ring-offset-4 ring-offset-background shadow-xl`}>
-                              <AvatarImage src={profile.avatar} alt={name || profile.name} />
-                              <AvatarFallback className="text-xl font-bold">{getInitials(name || profile.name)}</AvatarFallback>
-                            </Avatar>
-                            <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold shadow-md border-2 border-background">
-                              Lv.1
-                            </div>
-                          </motion.div>
+                    <div className="p-3 rounded-xl bg-surface-container-low border border-outline-variant space-y-1 text-left">
+                      <div className="flex justify-between text-xs font-label text-on-surface-variant font-medium">
+                        <span className="flex items-center gap-1">
+                          <Shield size={12} className="text-primary" /> Starter Bonus XP
+                        </span>
+                        <span className="font-bold text-primary">15 XP</span>
+                      </div>
+                      <XPBar value={15} />
+                    </div>
 
-                          <div>
-                            <motion.h2
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.2 }}
-                              className="font-headline text-2xl font-bold text-on-surface"
-                            >
-                              {name || profile.name}
-                            </motion.h2>
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              transition={{ delay: 0.3 }}
-                              className={`inline-flex items-center gap-1 mt-1 px-2.5 py-1 rounded-full text-xs font-label font-semibold ${profile.badge}`}
-                            >
-                              {profile.icon} {profile.tagline}
-                            </motion.div>
-                          </div>
-                        </div>
-                      )}
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35 }}
-                        className="grid grid-cols-3 gap-2 text-left"
+                    <div className="flex gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playSound("click");
+                          setCreateStep("details");
+                        }}
+                        className="flex-1 py-3 rounded-xl border border-outline-variant text-on-surface-variant font-label font-bold text-xs hover:bg-surface-container transition-colors cursor-pointer"
                       >
-                        {[
-                          { label: "Class", value: studentClass || "—", icon: <GraduationCap size={13} /> },
-                          { label: "Board", value: board || "—", icon: <BookOpen size={13} /> },
-                          { label: "School", value: school || "—", icon: <School size={13} /> },
-                        ].map((stat) => (
-                          <div key={stat.label} className="rounded-xl bg-surface-container-low border border-outline-variant p-2.5 space-y-1">
-                            <div className="flex items-center gap-1 text-on-surface-variant">{stat.icon}</div>
-                            <p className="text-[10px] font-label font-semibold text-on-surface-variant uppercase tracking-wide">{stat.label}</p>
-                            <p className="text-xs font-label font-bold text-on-surface truncate" title={stat.value}>{stat.value}</p>
-                          </div>
-                        ))}
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.45 }}
-                        className="space-y-1.5"
+                        ← Edit
+                      </button>
+                      <button
+                        type="button"
+                        id="create-account-btn"
+                        onClick={handleCreateAccount}
+                        disabled={loading}
+                        className="flex-2 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-bold text-sm hover:opacity-95 active:scale-[0.99] transition-all cursor-pointer shadow-md disabled:opacity-80"
                       >
-                        <div className="flex justify-between text-xs font-label text-on-surface-variant">
-                          <span className="flex items-center gap-1"><Shield size={11} /> Scholar XP</span>
-                          <span>15 / 100 XP (Starter Bonus)</span>
-                        </div>
-                        <XPBar value={15} />
-                      </motion.div>
+                        {loading ? (
+                          <span>Entering Dojo…</span>
+                        ) : (
+                          <>
+                            <Zap size={16} /> Enter the Dojo
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
 
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="flex gap-3"
-                      >
-                        <button
-                          type="button"
-                          id="step3-back-btn"
-                          onClick={() => {
-                            playSound("click");
-                            setStep("details");
-                          }}
-                          className="flex-1 py-3 rounded-xl border border-outline-variant text-on-surface-variant font-label font-semibold text-sm hover:bg-surface-container transition-colors cursor-pointer"
-                        >
-                          ← Edit
-                        </button>
-                        <button
-                          type="button"
-                          id="enter-dojo-btn"
-                          onClick={handleEnter}
-                          disabled={loading}
-                          className="flex-2 relative flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-on-primary font-label font-semibold text-sm hover:opacity-90 transition-all overflow-hidden disabled:opacity-80 cursor-pointer"
-                        >
-                          {loading ? (
-                            <>
-                              <motion.span
-                                animate={{ rotate: 360 }}
-                                transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
-                                className="inline-block"
-                              >
-                                ✦
-                              </motion.span>
-                              Entering Dojo…
-                            </>
-                          ) : (
-                            <>
-                              <Zap size={15} /> Enter the Dojo
-                            </>
-                          )}
-                        </button>
-                      </motion.div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+            {/* ─────────────────────────────────────────────────────────────
+                BOTTOM SECTION: 1-CLICK INSTANT DEMO EVALUATION
+               ───────────────────────────────────────────────────────────── */}
+            <div className="mt-6 pt-5 border-t border-outline-variant">
+              <p className="text-[11px] font-label font-bold text-on-surface-variant uppercase tracking-wider mb-2.5 text-center flex items-center justify-center gap-1">
+                <span>⚡</span> 1-Click Instant Demo Evaluation
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  id="demo-ankit-btn"
+                  onClick={() => handleQuickDemo("ankit")}
+                  disabled={loading}
+                  className="p-3 rounded-2xl border border-outline-variant bg-surface-container-low hover:bg-surface-container hover:border-primary/50 text-xs font-label text-on-surface flex flex-col items-center gap-1 transition-all text-center cursor-pointer active:scale-95 group"
+                >
+                  <span className="text-primary font-bold group-hover:scale-105 transition-transform flex items-center gap-1">
+                    ⚡ Ankit Pradhan
+                  </span>
+                  <span className="text-[10px] text-on-surface-variant">Class 12 · CBSE (Science)</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="demo-maya-btn"
+                  onClick={() => handleQuickDemo("maya")}
+                  disabled={loading}
+                  className="p-3 rounded-2xl border border-outline-variant bg-surface-container-low hover:bg-surface-container hover:border-secondary/50 text-xs font-label text-on-surface flex flex-col items-center gap-1 transition-all text-center cursor-pointer active:scale-95 group"
+                >
+                  <span className="text-secondary font-bold group-hover:scale-105 transition-transform flex items-center gap-1">
+                    ⚡ Maya Chen
+                  </span>
+                  <span className="text-[10px] text-on-surface-variant">Class 12 · ICSE / ISC</span>
+                </button>
               </div>
-            </motion.div>
+            </div>
           </div>
-        )}
+        </motion.div>
 
-        {/* Footer note */}
-        <p className="text-center text-xs font-label text-on-surface-variant mt-5">
+        {/* Footer Note */}
+        <p className="text-center text-xs font-label text-on-surface-variant mt-5 opacity-80">
           Privacy First: Your academic notes and profile stay in your browser. ✦
         </p>
       </div>
