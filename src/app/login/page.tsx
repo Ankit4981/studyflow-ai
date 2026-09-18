@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/base-ui/avatar
 import {
   BookOpen, GraduationCap, School, ChevronDown,
   Swords, Shield, Zap, Star, ArrowRight, Sparkles,
-  UserCheck, UserPlus, LogIn, CheckCircle2
+  UserPlus, LogIn
 } from "lucide-react";
 import {
   SCHOLAR_KEY,
