@@ -10,6 +10,9 @@ import { DEMO_MATERIALS, DEMO_STORAGE_KEY, getDemoMaterial } from "@/lib/demoCon
 import { useScholar, useRequireAuth } from "@/lib/hooks/useScholar";
 import { DojoStepTracker } from "@/components/navigation/DojoStepTracker";
 
+import { WorkspaceClock } from "@/components/workspace/WorkspaceClock";
+import { DailyNewsHub } from "@/components/workspace/DailyNewsHub";
+
 export default function WorkspacePage() {
   // Enforce active session authentication
   useRequireAuth("/login");
@@ -57,6 +60,15 @@ export default function WorkspacePage() {
     setError(null);
   }
 
+  function handleLoadNewsArticle(articleText: string) {
+    setActiveTab("notes");
+    setMaterial(articleText);
+    setError(null);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   async function handleTransform() {
     setError(null);
     setIsLoading(true);
@@ -97,7 +109,13 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex flex-col w-full px-6 md:px-10 py-8 max-w-7xl mx-auto">
+      {/* 1. Dojo Step Tracker */}
       <DojoStepTracker currentStep={1} />
+
+      {/* 2. Workspace Live Clock & Circadian Focus Insight */}
+      <WorkspaceClock scholarName={scholarName} />
+
+      {/* 3. Main Transformation Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-5">
           <InputHub
@@ -125,6 +143,9 @@ export default function WorkspacePage() {
           )}
         </div>
       </div>
+
+      {/* 4. Daily Scholar Gazette & Intel Hub */}
+      <DailyNewsHub onLoadArticleToStudy={handleLoadNewsArticle} />
     </div>
   );
 }

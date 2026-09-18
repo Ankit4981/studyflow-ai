@@ -86,9 +86,10 @@ const STATUS_LABEL: Record<Buddy["status"], string> = {
 };
 
 function buildGmailLink(to: string, inviterName: string) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://studyflow-ai.vercel.app";
   const subject = encodeURIComponent(`${inviterName} invited you to study on StudyFlow AI 🎓`);
   const body = encodeURIComponent(
-    `Hey!\n\n${inviterName} thinks you'd make great study buddies on StudyFlow AI — a tool that turns study material into flashcards, micro-tasks, and more.\n\n👉 Join here: http://localhost:3000/login\n\nLook forward to studying together!\n\n– ${inviterName} via StudyFlow AI ✦`
+    `Hey!\n\n${inviterName} thinks you'd make great study buddies on StudyFlow AI — a tool that turns study material into flashcards, micro-tasks, and more.\n\n👉 Join here: ${origin}/login\n\nLook forward to studying together!\n\n– ${inviterName} via StudyFlow AI ✦`
   );
   return `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(to)}&su=${subject}&body=${body}`;
 }
@@ -116,7 +117,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
     setSent(true);
   }
 
-  const shareLink = "http://localhost:3000/login";
+  const shareLink = (typeof window !== "undefined" ? window.location.origin : "https://studyflow-ai.vercel.app") + "/login";
 
   function handleCopyLink() {
     navigator.clipboard.writeText(shareLink);

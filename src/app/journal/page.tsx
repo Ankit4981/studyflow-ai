@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BookOpen, Plus, Trash2, Pencil, Check, X, CalendarDays, Sparkles } from "lucide-react";
 import { JournalNavigation, JournalEntry } from "@/components/watermelon/journal-navigation";
 import { useRequireAuth } from "@/lib/hooks/useScholar";
+
+const JOURNAL_STORAGE_KEY = "studyflow_journal_entries";
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -278,12 +280,38 @@ function StatsBanner({ entries }: { entries: StudyJournalEntry[] }) {
 export default function JournalPage() {
   useRequireAuth("/login");
 
-  const [entries, setEntries] = useState<StudyJournalEntry[]>(SEED_ENTRIES);
+  // Load from localStorage on mount; fall back to seed entries only for brand-new users
+  const [entries, setEntries] = useState<StudyJournalEntry[]>(() => {
+    if (typeof window === "undefined") return SEED_ENTRIES;
+    try {
+      const stored = localStorage.getItem(JOURNAL_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as StudyJournalEntry[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ignore */ }
+    return SEED_ENTRIES;
+  });
   const [showEditor, setShowEditor] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeEntry, setActiveEntry] = useState<StudyJournalEntry | null>(
-    SEED_ENTRIES[0] ?? null
-  );
+  const [activeEntry, setActiveEntry] = useState<StudyJournalEntry | null>(() => {
+    if (typeof window === "undefined") return SEED_ENTRIES[0] ?? null;
+    try {
+      const stored = localStorage.getItem(JOURNAL_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as StudyJournalEntry[];
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0] ?? null;
+      }
+    } catch { /* ignore */ }
+    return SEED_ENTRIES[0] ?? null;
+  });
+
+  // Sync entries to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(entries));
+    } catch { /* ignore */ }
+  }, [entries]);
 
   // Sort entries by day ascending
   const sorted = [...entries].sort((a, b) => a.day - b.day);

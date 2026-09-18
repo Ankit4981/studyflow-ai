@@ -102,28 +102,28 @@ function generateFallbackFlow(material: string, materialType: "notes" | "assignm
     ],
     flashcards: [
       {
-        id: "fc-1",
+        id: crypto.randomUUID(),
         question: `What is the primary governing objective in ${sampleTitle.slice(0, 30)}?`,
         answer:
           "To establish a repeatable, logically sound framework that accurately predicts outcomes and solves domain challenges.",
         difficulty: "easy" as const,
       },
       {
-        id: "fc-2",
+        id: crypto.randomUUID(),
         question: "How do you distinguish the independent mechanisms from dependent effects?",
         answer:
           "By isolating the controlling variable under standard conditions and measuring systemic response.",
         difficulty: "medium" as const,
       },
       {
-        id: "fc-3",
+        id: crypto.randomUUID(),
         question: "What criteria must be satisfied for this model to remain valid?",
         answer:
           "Boundary constraints, conservation laws, and consistent empirical reproducibility under standard assumptions.",
         difficulty: "hard" as const,
       },
       {
-        id: "fc-4",
+        id: crypto.randomUUID(),
         question: "How can you leverage the Feynman Technique to master this topic?",
         answer:
           "Explain the core concept in plain language to an imagined beginner, pinpoint gaps in explanation, and simplify terminology.",

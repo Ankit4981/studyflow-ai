@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Timer, X, Play, Pause, RotateCcw, Award } from "lucide-react";
 import { playSound } from "@/lib/audioEffects";
 import { triggerConfetti } from "@/lib/confetti";
-import { SCHOLAR_KEY } from "@/app/login/page";
-import { notifyScholarUpdated } from "@/lib/hooks/useScholar";
+import { awardScholarXP, awardScholarFocusSession } from "@/lib/hooks/useScholar";
 
 interface FocusTimerModalProps {
   isOpen: boolean;
@@ -105,12 +104,18 @@ export function FocusTimerModal({ isOpen, onClose }: FocusTimerModalProps) {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const ambientNodeRef = useRef<{ stop: () => void } | null>(null);
 
-  // Switch mode
+  // Switch mode — also stop ambient audio cleanly
   function selectMode(newMode: TimerMode) {
     playSound("click");
     setIsRunning(false);
     setMode(newMode);
     setTimeLeft(MODE_DURATIONS[newMode]);
+    // Stop ambient on mode switch to prevent orphaned audio nodes
+    if (ambientNodeRef.current) {
+      ambientNodeRef.current.stop();
+      ambientNodeRef.current = null;
+      setAmbient("none");
+    }
   }
 
   const handleSessionComplete = useCallback(() => {
@@ -119,18 +124,10 @@ export function FocusTimerModal({ isOpen, onClose }: FocusTimerModalProps) {
     triggerConfetti();
     setCompletedSessions((s) => s + 1);
 
-    // Award +50 XP
+    // Award +50 XP via centralized awardScholarXP (uses correct nullish coalescing internally)
     if (mode === "pomodoro" || mode === "deep") {
-      try {
-        const raw = localStorage.getItem(SCHOLAR_KEY);
-        if (raw) {
-          const scholar = JSON.parse(raw);
-          scholar.xp = (scholar.xp || 350) + 50;
-          scholar.focusSessions = (scholar.focusSessions || 0) + 1;
-          localStorage.setItem(SCHOLAR_KEY, JSON.stringify(scholar));
-          notifyScholarUpdated();
-        }
-      } catch { /* ignore */ }
+      awardScholarXP(50);
+      awardScholarFocusSession();
     }
   }, [mode]);
 
@@ -152,8 +149,8 @@ export function FocusTimerModal({ isOpen, onClose }: FocusTimerModalProps) {
     };
   }, [isRunning, isOpen, handleSessionComplete]);
 
-  // Ambient sound synthesizer
-  function setAmbientTrack(track: AmbientSound) {
+  // Ambient sound synthesizer — resumes suspended AudioContext before creating nodes
+  async function setAmbientTrack(track: AmbientSound) {
     playSound("click");
     if (ambientNodeRef.current) {
       ambientNodeRef.current.stop();
@@ -170,7 +167,8 @@ export function FocusTimerModal({ isOpen, onClose }: FocusTimerModalProps) {
       if (!AudioCtx) return;
       if (!audioCtxRef.current) audioCtxRef.current = new AudioCtx();
       const ctx = audioCtxRef.current;
-      if (ctx.state === "suspended") ctx.resume();
+      // Modern browsers suspend AudioContext until a user gesture — always resume before use
+      if (ctx.state === "suspended") await ctx.resume();
 
       const node = createAmbientAudio(ctx, track);
       ambientNodeRef.current = node;

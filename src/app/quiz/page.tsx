@@ -11,8 +11,7 @@ import { QUIZ_BANK, QuizQuestion, SUBJECT_ICONS } from "@/lib/quizBank";
 import { useAppState } from "@/lib/state/AppStateContext";
 import { playSound } from "@/lib/audioEffects";
 import { triggerConfetti } from "@/lib/confetti";
-import { SCHOLAR_KEY } from "@/app/login/page";
-import { useScholar, notifyScholarUpdated, useRequireAuth } from "@/lib/hooks/useScholar";
+import { useScholar, useRequireAuth, awardScholarXP, awardScholarQuizComplete } from "@/lib/hooks/useScholar";
 
 import Link from "next/link";
 import { DojoStepTracker } from "@/components/navigation/DojoStepTracker";
@@ -65,6 +64,13 @@ export default function QuizArenaPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [mode, isTimerRunning]);
+
+  // Clean up timer on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   function startBankQuiz() {
     let pool = [...QUIZ_BANK];
@@ -150,29 +156,23 @@ export default function QuizArenaPage() {
 
   const finishQuiz = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
+    setIsTimerRunning(false);
 
-    // Calculate score & XP
+    // Calculate score — treat unanswered questions as incorrect (selectedAnswers[idx] === undefined)
     let correctCount = 0;
-    questions.forEach((q, idx) => {
-      if (selectedAnswers[idx] === q.correctIndex) {
+    for (let idx = 0; idx < questions.length; idx++) {
+      const selected = selectedAnswers[idx];
+      if (selected !== undefined && selected === questions[idx].correctIndex) {
         correctCount++;
       }
-    });
+    }
 
     const earned = correctCount * 25;
     setXpEarned(earned);
 
-    // Persist XP to scholar
-    try {
-      const raw = localStorage.getItem(SCHOLAR_KEY);
-      if (raw) {
-        const scholar = JSON.parse(raw);
-        scholar.xp = (scholar.xp || 350) + earned;
-        scholar.quizzesCompleted = (scholar.quizzesCompleted || 0) + 1;
-        localStorage.setItem(SCHOLAR_KEY, JSON.stringify(scholar));
-        notifyScholarUpdated();
-      }
-    } catch { /* ignore */ }
+    // Persist XP and quizzesCompleted via centralized helpers (correct nullish coalescing)
+    awardScholarXP(earned);
+    awardScholarQuizComplete();
 
     setMode("results");
     if (correctCount >= Math.ceil(questions.length * 0.6)) {

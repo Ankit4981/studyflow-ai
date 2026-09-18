@@ -32,8 +32,7 @@ function subscribe(callback: () => void) {
 
 function getSnapshot(): string | null {
   if (typeof window === "undefined") return null;
-  const isSessionActive = sessionStorage.getItem(SESSION_ACTIVE_KEY);
-  if (!isSessionActive) return null;
+  // Read from localStorage directly; sessionStorage check was causing multi-tab auth failures
   return localStorage.getItem(SCHOLAR_KEY);
 }
 
@@ -91,7 +90,38 @@ export function awardScholarXP(amount: number) {
     const raw = localStorage.getItem(SCHOLAR_KEY);
     if (!raw) return;
     const scholar = JSON.parse(raw) as ScholarProfile;
-    scholar.xp = (scholar.xp || 0) + amount;
+    // Use nullish coalescing (??) so 0 XP is preserved correctly (not overridden by fallback)
+    scholar.xp = (scholar.xp ?? 0) + amount;
+    localStorage.setItem(SCHOLAR_KEY, JSON.stringify(scholar));
+    notifyScholarUpdated();
+  } catch {
+    // ignore
+  }
+}
+
+/** Increment focusSessions counter (call when a Pomodoro/Deep session completes) */
+export function awardScholarFocusSession() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(SCHOLAR_KEY);
+    if (!raw) return;
+    const scholar = JSON.parse(raw) as ScholarProfile;
+    scholar.focusSessions = (scholar.focusSessions ?? 0) + 1;
+    localStorage.setItem(SCHOLAR_KEY, JSON.stringify(scholar));
+    notifyScholarUpdated();
+  } catch {
+    // ignore
+  }
+}
+
+/** Increment quizzesCompleted counter (call only when a quiz is genuinely scored) */
+export function awardScholarQuizComplete() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = localStorage.getItem(SCHOLAR_KEY);
+    if (!raw) return;
+    const scholar = JSON.parse(raw) as ScholarProfile;
+    scholar.quizzesCompleted = (scholar.quizzesCompleted ?? 0) + 1;
     localStorage.setItem(SCHOLAR_KEY, JSON.stringify(scholar));
     notifyScholarUpdated();
   } catch {
@@ -104,10 +134,10 @@ export function useRequireAuth(redirectUrl = "/login") {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const hasSession = sessionStorage.getItem(SESSION_ACTIVE_KEY);
+    // Use localStorage (not sessionStorage) so auth persists across tabs and page refreshes.
+    // sessionStorage is tab-isolated; opening any link in a new tab would wrongly redirect.
     const hasScholar = localStorage.getItem(SCHOLAR_KEY);
-
-    if (!hasSession || !hasScholar) {
+    if (!hasScholar) {
       router.replace(redirectUrl);
     }
   }, [router, redirectUrl]);
