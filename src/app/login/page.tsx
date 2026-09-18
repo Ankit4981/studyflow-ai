@@ -316,8 +316,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-10 relative selection:bg-primary selection:text-on-primary">
       {/* Ambient background decoration */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-secondary/10 blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-125 h-125 rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-125 h-125 rounded-full bg-secondary/10 blur-[120px]" />
       </div>
 
       <div className="relative w-full max-w-md">
