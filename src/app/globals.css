@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+:root {
+  /* StudyFlow AI — Editorial Notebook design tokens (light) */
+  --background: #F5F1E8;
+  --surface: #FFFDF8;
+  --surface-container-lowest: #FFFDF8;
+  --surface-container-low: #F7F3EA;
+  --surface-container: #F0EBDF;
+  --surface-container-high: #EAE5D8;
+  --surface-dim: #DDDAD1;
+
+  --on-surface: #24231F;
+  --on-surface-variant: #6F6B61;
+  --outline: #8A726B;
+  --outline-variant: #D8D1C3;
+
+  --primary: #C65D3A;
+  --on-primary: #FFFDF8;
+  --primary-container: #F4E3DD;
+  --on-primary-container: #9C3E1E;
+
+  --secondary: #5E8068;
+  --on-secondary: #FFFDF8;
+  --secondary-container: #E8EFEA;
+  --on-secondary-container: #2F3A32;
+
+  --tertiary: #2F3A32;
+  --on-tertiary: #FFFDF8;
+
+  --warning: #C28A3D;
+  --warning-container: #F4E9D8;
+
+  --error: #B94A48;
+  --on-error: #FFFDF8;
+  --error-container: #FADBD8;
+  --on-error-container: #93000A;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+.dark {
+  /* Genuinely-designed dark theme: warm charcoal, not black/purple/cyan */
+  --background: #1C1B17;
+  --surface: #232219;
+  --surface-container-lowest: #201F19;
+  --surface-container-low: #262419;
+  --surface-container: #2B2921;
+  --surface-container-high: #322F26;
+  --surface-dim: #17160F;
+
+  --on-surface: #F0EBDF;
+  --on-surface-variant: #B8B0A0;
+  --outline: #8A7A6B;
+  --outline-variant: #423E32;
+
+  --primary: #E8896A;
+  --on-primary: #2E1206;
+  --primary-container: #5C2A15;
+  --on-primary-container: #FFDBD0;
+
+  --secondary: #8CB39A;
+  --on-secondary: #113322;
+  --secondary-container: #2C4636;
+  --on-secondary-container: #D9E6DA;
+
+  --tertiary: #A9C2AF;
+  --on-tertiary: #16261C;
+
+  --warning: #DDAE6C;
+  --warning-container: #4A3717;
+
+  --error: #E8918F;
+  --on-error: #440E0E;
+  --error-container: #5C2321;
+  --on-error-container: #FFDAD6;
+}
+
+@theme inline {
+  --font-headline: "Newsreader", serif;
+  --font-body: "Source Serif 4", serif;
+  --font-label: "Work Sans", sans-serif;
+
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-dim: var(--surface-dim);
+
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+
+  --color-warning: var(--warning);
+  --color-warning-container: var(--warning-container);
+
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--on-surface);
+  font-family: var(--font-label);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 9999px;
+}
+
+/* Focus Reading Mode */
+.focus-reading main {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.focus-reading .study-body-text {
+  font-size: 1.15em;
+  line-height: 1.9;
+}
+
+/* Dyslexia-friendly mode: swap serif body copy for a more even, spaced sans */
+.dyslexia-friendly {
+  --font-body: "Work Sans", sans-serif;
+}
+.dyslexia-friendly .study-body-text,
+.dyslexia-friendly p,
+.dyslexia-friendly li {
+  letter-spacing: 0.02em;
+  word-spacing: 0.06em;
+  line-height: 1.85;
+}
+
+/* Reduced motion: respect OS setting AND explicit in-app toggle */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 3D flashcard flip */
+.flip-card-scene {
+  perspective: 1800px;
+}
+.flip-card-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reduce-motion .flip-card-inner {
+  transition: none;
+}
+.flip-card-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+.flip-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-card-face--back {
+  transform: rotateY(180deg);
+}
