@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useAppState } from "@/lib/state/AppStateContext";
 import { playSound } from "@/lib/audioEffects";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 interface ChatMessage {
   id: string;
@@ -251,7 +252,7 @@ export function StudyMentor() {
                           : "bg-surface-container-low border border-outline-variant text-on-surface rounded-tl-xs"
                       }`}
                     >
-                      <div className="whitespace-pre-wrap">{m.content}</div>
+                      <MarkdownRenderer content={m.content} isUser={isUser} />
                       {!isUser && (
                         <div className="flex items-center justify-between pt-1 opacity-70 text-[10px]">
                           <span>{m.timestamp}</span>
