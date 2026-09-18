@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { useAppState } from "@/lib/state/AppStateContext";
+import { useScholar } from "@/lib/hooks/useScholar";
 
 export type DojoStep = 1 | 2 | 3 | 4 | 5;
 
@@ -16,21 +17,28 @@ const STEPS = [
 
 export function DojoStepTracker({ currentStep }: { currentStep: DojoStep }) {
   const { studyFlow, progress } = useAppState();
+  const { scholar } = useScholar();
 
   return (
     <div className="w-full bg-surface border border-outline-variant rounded-2xl p-3.5 mb-6 shadow-xs">
       <div className="flex items-center justify-between gap-2 overflow-x-auto">
         {STEPS.map((s, idx) => {
-          const isCompleted =
-            s.step === 1
-              ? Boolean(studyFlow)
-              : s.step === 2
-              ? progress.tasksCompleted > 0 && progress.tasksCompleted === progress.tasksTotal
-              : s.step === 3
-              ? progress.flashcardsReviewed > 0
-              : s.step < currentStep;
+          let isCompleted = false;
+          if (s.step === 1) {
+            isCompleted = Boolean(studyFlow);
+          } else if (s.step === 2) {
+            isCompleted = progress.tasksTotal > 0 && progress.tasksCompleted >= progress.tasksTotal;
+          } else if (s.step === 3) {
+            isCompleted = progress.flashcardsReviewed > 0;
+          } else if (s.step === 4) {
+            isCompleted = (scholar?.quizzesCompleted ?? 0) > 0;
+          } else if (s.step === 5) {
+            isCompleted =
+              (scholar?.xp ?? 0) >= 100 ||
+              (progress.tasksCompleted > 0 && (scholar?.quizzesCompleted ?? 0) > 0);
+          }
 
-            const isCurrent = s.step === currentStep;
+          const isCurrent = s.step === currentStep;
 
           return (
             <div key={s.step} className="flex items-center gap-2 shrink-0">
